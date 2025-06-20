@@ -18,13 +18,3 @@ int registerbgifont(void* font)            { return 0;     }
 unsigned setgraphbufsize(unsigned bufsize) { return 0;     }
 void clearresizeevent(void)                {               }
 bool isresizeevent(void)                   { return false; }
-
-//static int GetMaxX(viewporttype &viewport)
-//{
-//	return viewport.right - viewport.left;
-//}
-//
-//static int GetMaxY(viewporttype &viewport)
-//{
-//	return viewport.bottom - viewport.top;
-//}

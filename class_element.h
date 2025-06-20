@@ -3,47 +3,52 @@
 
 #include <iostream>
 #include "datatype.h"
+#include "class_base.h"
 
 using std::ostream;
 using std::cout;
 using std::endl;
 
-class Element_T
+class Element_T : public Base_T
 {
 	private:
 
 	protected:
-		static const int FRAME_THICKNESS = 3;
-
-		int pos_x;
-		int pos_y;
-		int width;
-		int height;
+		static const int FRAME_THICKNESS = 6;
 
 		bool highlighted;
 		bool selected;
+		bool enabled;
+		bool visible;
 		bool frame;
 
 	public:
-		const char * const text;
 		SceneID_T go_to_scene;
 
-		Element_T(const int init_pos_x = 0,
-				  const int init_pos_y = 0,
-				  const int init_width = 50,
-				  const int init_height = 50,
-				  const bool init_frame = false,
-				  const SceneID_T init_go_to_scene = SCENE_NONE,
-				  const char* const init_text = "N/A");
+		Element_T(const char* const text,
+				  const int         id,
+				  const int         pos_x,
+				  const int         pos_y,
+				  const int         width,
+				  const int         height,
+				  const char*       bitmap,
+				  const bool        init_frame,
+				  const SceneID_T   init_go_to_scene);
 
-		void SetPosition(const int init_pos_x, const int init_pos_y) { pos_x = init_pos_x; pos_y  = init_pos_y;  };
-		void SetSize(const int init_width, const int init_height)    { width = init_width; height = init_height; };
-		int GetPosX(void) const                                      { return pos_x;                             };
-		int GetPosY(void) const                                      { return pos_y;                             };
-		void LightOn(void)                                           { highlighted = true;                       };
-		void LightOff(void)                                          { highlighted = false;                      };
-		bool isCursorAbove(const int cursor_x, const int cursor_y) const;
-		virtual void Draw(void) const {};
+		void Enable(void)              { enabled     = true;  };
+		void Disable(void)             { enabled     = false; };
+		void Select(void)              { selected    = true;  };
+		void Unselect(void)            { selected    = false; };
+		void Show(void)                { visible     = true;  };
+		void Hide(void)                { visible     = false; };
+		void LightOn(void)             { highlighted = true;  };
+		void LightOff(void)            { highlighted = false; };
+		bool IsEnabled(void)     const { return enabled;      };
+		bool IsVisible(void)     const { return visible;      };
+		bool IsHighlighted(void) const { return highlighted;  };
+		bool IsSelected(void)    const { return selected;     };
+
+		bool IsCursorAbove(const int cursor_x, const int cursor_y) const;
 
 		friend const ostream & operator<<(const ostream & os, Element_T & element);
 };

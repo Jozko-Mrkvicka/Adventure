@@ -2,23 +2,18 @@
 #include "graphics.h"
 #include "definitions.h"
 
-Node_T::Node_T(const Id_T init_id,
-			   const int x,
-	           const int y,
-		       const bool frame,
-			   const SceneID_T go_to_scene,
-	           const char * const text) : Element_T(x, y, 2 * RADIUS, 2 * RADIUS, frame, go_to_scene, text)
+Node_T::Node_T(const char* const text,
+			   const int         id,
+			   const int         x,
+	           const int         y,
+			   const char* const bitmap,
+		       const bool        frame,
+			   const SceneID_T   go_to_scene) : Element_T(text, id, x, y, 2 * RADIUS, 2 * RADIUS, bitmap, frame, go_to_scene)
 {
-	id = init_id;
-
-	visible       = false;
-	enabled       = false;
-	highlighted   = false;
-	selected      = false;
-	newly_created = true;
-
+	enabled         = false;
+	newly_created   = true;
 	neighbour_count = 0;
-	neighbour_node = NULL;
+	neighbour_node  = NULL;
 }
 
 /* Draw lines connecting two neighbour nodes. */
@@ -61,7 +56,7 @@ void Node_T::DrawDirection(void) const
 	}
 }
 
-void Node_T::DrawNode(void) const
+void Node_T::Draw(void) const
 {
 	if (true == visible)
 	{
@@ -75,8 +70,9 @@ void Node_T::DrawNode(void) const
 		fillellipse(pos_x, pos_y, RADIUS, RADIUS);
 
 		/* Print text. */
-		setbkcolor(color_inside);
 		setcolor(Color_T::TEXT);
+		setbkcolor(color_inside);
+		settextstyle(DEFAULT_FONT, 0, 0);
 		settextjustify(CENTER_TEXT, CENTER_TEXT);
 		outtextxy(pos_x, pos_y, (char *) text);
 	}
@@ -135,7 +131,7 @@ void Node_T::Disconnect(Node_T &node)
 
 }
 
-bool Node_T::isConnectedTo(const Node_T &node) const
+bool Node_T::IsConnectedTo(const Node_T &node) const
 {
 	bool connected = false;
 
@@ -149,4 +145,20 @@ bool Node_T::isConnectedTo(const Node_T &node) const
 	}
 
 	return connected;
+}
+
+const ostream& operator<<(const ostream& os, Node_T& node)
+{
+	Element_T& element = node;
+
+	cout << element;
+	cout << "Node_T class properties:" << endl;
+	cout << "ID              = " << node.id              << endl;
+	cout << "VISIBLE         = " << node.visible         << endl;
+	cout << "ENABLED         = " << node.enabled         << endl;
+	cout << "NEWLY_CREATED   = " << node.newly_created   << endl;
+	cout << "NEIGHBOUR_COUNT = " << node.neighbour_count << endl;
+	cout << endl;
+
+	return os;
 }

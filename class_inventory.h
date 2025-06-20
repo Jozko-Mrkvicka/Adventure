@@ -2,21 +2,22 @@
 #define CLASS_INVENTORY_T
 
 #include "class_item.h"
+#include "class_collection.h"
+#include "graphics.h"
 
-class Inventory_T
+class Inventory_T : public Collection_T
 {
 	private:
+		enum Color_T
+		{
+			BACKGROUND = LIGHTGREEN,
+			FRAME      = GREEN,
+			TEXT       = GREEN,
+		};
+
+		static const int SLOT_SIZE = 100;
 		static const int VISIBLE_ITEMS_COUNT = 5;
 		static const int FRAME_THICKNESS = 6;
-		static const int SPACE_FOR_ARROW = 31 - FRAME_THICKNESS;
-		static const int LEFT      = 0;
-		static const int TOP       = 379; // TODO: Bind somehow to the Scene dimensions.
-		static const int BOTTOM    = 479 - 9; /* There must be some bug in the WinBGIm library. */
-		static const int SLOT_SIZE = (BOTTOM - TOP);
-		static const int ITEM_SIZE = (BOTTOM - TOP) - FRAME_THICKNESS * 2;
-		static const int RIGHT = 639;//LEFT + (SLOT_SIZE - FRAME_THICKNESS) * VISIBLE_ITEMS_COUNT + FRAME_THICKNESS + 2 * SPACE_FOR_ARROW;
-
-		const char* background;
 		int view_index;
 
 	public:
@@ -26,11 +27,11 @@ class Inventory_T
 			SCROLL_RIGHT = 1
 		};
 
-int item_count;
-Item_T** item;
-		Inventory_T();
-		void Add(Item_T &new_item);
-		Item_T & Remove(const Item_T::Id_T item_id);
+		Inventory_T(const char* const text,
+					const int         pos_x,
+					const int         pos_y,
+					const char* const bitmap);
+
 		void ShiftView(const Direction_T dir);
 		void Draw(void) const;
 };

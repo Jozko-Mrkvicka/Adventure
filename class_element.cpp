@@ -1,24 +1,23 @@
 #include "class_element.h"
 
-Element_T::Element_T(const int init_pos_x, 
-					 const int init_pos_y,
-					 const int init_width,
-					 const int init_height,
-					 bool init_frame,
-					 SceneID_T init_go_to_scene,
-					 const char* const init_text) : text(init_text)
+Element_T::Element_T(const char* const text,
+					 const int         id,
+					 const int         pos_x,
+					 const int         pos_y,
+					 const int         width,
+					 const int         height,
+					 const char*       bitmap,
+					 bool              init_frame,
+					 SceneID_T         init_go_to_scene) : Base_T(text, id, pos_x, pos_y, width, height, bitmap)
 {
-	pos_x       = init_pos_x;
-	pos_y       = init_pos_y;
-	width       = init_width;
-	height      = init_height;
 	highlighted = false;
 	selected    = false;
+	visible     = false;
 	frame       = init_frame;
 	go_to_scene = init_go_to_scene;
 }
 
-bool Element_T::isCursorAbove(const int cursor_x, const int cursor_y) const
+bool Element_T::IsCursorAbove(const int cursor_x, const int cursor_y) const
 {
 	bool retval = false;
 
@@ -33,15 +32,18 @@ bool Element_T::isCursorAbove(const int cursor_x, const int cursor_y) const
 	return retval;
 }
 
-const ostream& operator<<(const ostream& os, Element_T & element)
+const ostream& operator<<(const ostream &os, Element_T &element)
 {
+	Base_T &base = element;
+
+	cout << base;
+	cout << "Element_T class properties:"            << endl;
+	cout << "HIGHLIGHTED = " << element.highlighted  << endl;
+	cout << "SELECTED    = " << element.selected     << endl;
+	cout << "VISIBLE     = " << element.visible      << endl;
+	cout << "FRAME       = " << element.frame        << endl;
+	cout << "GOTO_SCENE  = " << element.go_to_scene  << endl;
 	cout << endl;
-	cout << "TEXT        = \"" << element.text << "\"" << endl;
-	cout << "POSITION_X  = " << element.pos_x          << endl;
-	cout << "POSITION_Y  = " << element.pos_y          << endl;
-	cout << "HIGHLIGHTED = " << element.highlighted    << endl;
-	cout << "SELECTED    = " << element.selected       << endl;
-	cout << "FRAME       = " << element.frame          << endl;
 
 	return os;
 }

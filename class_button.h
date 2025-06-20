@@ -6,6 +6,9 @@
 class Button_T : public Element_T
 {
 	private:
+		static const int LETTER_HEIGHT = 23;
+		static const int LETTER_WIDTH  = 24;
+
 		bool clicable;
 
 	public:
@@ -25,20 +28,19 @@ class Button_T : public Element_T
 			EXIT,
 		};
 
-		Id_T id;
 		bool header;
 
-		Button_T(const Id_T init_id          = NONE,
-				 const int pos_x             = 0,
-				 const int pos_y             = 0,
-				 const int width             = 50,
-				 const int height            = 50,
-				 const bool frame            = false,
-				 const bool init_click       = false,
-				 const SceneID_T go_to_scene = SCENE_NONE,
-				 const char* const text      = "N/A");
+		Button_T(const char* const text,
+				 const int         id,
+				 const int         pos_x,
+				 const int         pos_y,
+				 const char* const bitmap,
+				 const bool        frame,
+				 const SceneID_T   go_to_scene,
+				 const bool        init_click);
 		
-		void Draw(const int offset_x = 0, const int offset_y = 0) const;
+		const char* const Button_T::GetText(void) const;
+		void Draw(void) const;
 };
 
 #endif

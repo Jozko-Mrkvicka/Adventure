@@ -7,7 +7,6 @@
 class Item_T : public Element_T
 {
 	private:
-		const char* bitmap;
 
 	public:
 		enum Type_T
@@ -36,19 +35,19 @@ class Item_T : public Element_T
 			STUDIO_ENTRY = 11,
 		};
 
-		Id_T id;
 		Type_T type;
 
-		Item_T(const Id_T init_id               = NONE,
-			   const int init_x                 = 0,
-			   const int init_y                 = 0,
-			   const bool init_frame            = false,
-			   const Type_T init_type           = STATIC,
-			   const SceneID_T init_go_to_scene = SCENE_NONE,
-			   const int init_width             = 50,
-			   const int init_height            = 50,
-			   const char* const init_bitmap    = "N/A",
-			   const char* const init_text      = "N/A");
+		Item_T(const char* const text,
+			   const int         id,
+			   const int         x,
+			   const int         y,
+			   const int         width,
+			   const int         height,
+			   const char* const bitmap,
+			   const bool        frame,
+			   const SceneID_T   go_to_scene,
+			   const Type_T      init_type);
+
 		void Draw(void) const;
 
 		friend const ostream& operator<<(const ostream& os, Item_T & item);

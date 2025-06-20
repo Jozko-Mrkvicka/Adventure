@@ -3,36 +3,19 @@
 #include "definitions.h"
 #include "miscellaneous.h"
 
-Item_T::Item_T(const Id_T init_id,
-			   const int init_x,
-			   const int init_y,
-			   const bool init_frame,
-			   const Type_T init_type,
-			   const SceneID_T init_go_to_scene,
-			   const int init_width,
-			   const int init_height,
-			   const char* const init_bitmap,
-			   const char* const init_text) : Element_T(init_x, init_y, init_width, init_height, init_frame, init_go_to_scene, init_text)
+Item_T::Item_T(const char* const text,
+			   const int         id,
+			   const int         x,
+			   const int         y,
+			   const int         width,
+			   const int         height,
+			   const char* const bitmap,
+			   const bool        frame,
+			   const SceneID_T   go_to_scene,
+			   const Type_T      init_type) : Element_T(text, id, x, y, width, height, bitmap, frame, go_to_scene)
 {
-	id          = init_id;
-	type        = init_type;
-	bitmap      = init_bitmap;
+	type = init_type;
 }
-
-//bool Item_T::isCursorAbove(const int cursor_x, const int cursor_y) const
-//{
-//	bool retval = false;
-//
-//	if ((cursor_x < pos_x + width) &&
-//		(cursor_x > pos_x) &&
-//		(cursor_y < pos_y + height) &&
-//		(cursor_y > pos_y))
-//	{
-//		retval = true;
-//	}
-//
-//	return retval;
-//}
 
 void Item_T::Draw(void) const
 {
@@ -48,17 +31,15 @@ void Item_T::Draw(void) const
 	}
 }
 
-const ostream& operator<<(const ostream& os, Item_T & item)
+const ostream& operator<<(const ostream& os, Item_T& item)
 {
-	Element_T &element = item;
-
+	Element_T& element = item;
+		
 	cout << element;
-	cout << "WIDTH       = " << item.width       << endl;
-	cout << "HEIGHT      = " << item.height      << endl;
-	cout << "BITMAP      = " << item.bitmap      << endl;
-	cout << "ID          = " << item.id          << endl;
-	cout << "TYPE        = " << item.type        << endl;
-	cout << "GOTO        = " << item.go_to_scene << endl;
+	cout << "Item_T class properties:" << endl;
+	cout << "ID   = " << item.id   << endl;
+	cout << "TYPE = " << item.type << endl;
+	cout << endl;
 
 	return os;
 }
