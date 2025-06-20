@@ -1,1173 +1,549 @@
 #include <iostream>
 #include "graphics.h"
+#include "definitions.h"
+#include "miscellaneous.h"
+
+#include "class_node.h"
+#include "class_map.h"
+#include "class_item.h"
+#include "class_scene.h"
+#include "class_inventory.h"
+#include "class_cursor.h"
+#include "class_control.h"
 
 using std::cout;
 using std::cin;
 using std::endl;
 
-// TODO: Add to namespace!
-static const int _COLOR_BACKGROUND = BLACK;
+View_T gView = MAP;
+Node_T::Id_T gNodeUnderCursor = Node_T::NONE;
+SceneID_T gActiveScene = SCENE_STUDIO;
 
-static int GetMaxX(void)
-{
-	return getmaxx() - 10;
-}
+Control_T gControl;
+Inventory_T gInventory;
+Map_T gMap;
 
-static int GetMaxY(void)
-{
-	return getmaxy() - 10;
-}
 
-enum ItemType_T
+class Menu_T
 {
-	STATIC      = 0,
-	INTERACTIVE = 1,
-	COLLECTIBLE = 2
+	private:
+
+		int pos_x;
+		int pos_y;
+		int btn_cnt;
+		int longest_button;
+
+	public:
+		Button_T *button;
+		int prev_highlighted_button;
+		static const int LETTER_HEIGHT = 23;
+		static const int LETTER_WIDTH  = 24;
+		Menu_T(int init_btn_cnt, int init_pos_x, int init_pos_y, Button_T *init_button);
+		int Menu_T::getButtonUnderCursor(const int cursor_x, const int cursor_y) const;
+		void Draw(void);
 };
 
-enum ItemId_T
+Menu_T::Menu_T(int init_btn_cnt, int init_pos_x, int init_pos_y, Button_T *init_button)
 {
-	KOFOLA   = 0,
-	RUM      = 1,
-	GUITAR   = 2,
-	NOTEBOOK = 3,
-	FRIDGE   = 4,
-	OVEN     = 5,
-	BOOTS    = 6,
-	PICTURE  = 7,
-	TV       = 8,
-};
+	btn_cnt = init_btn_cnt;
+	pos_x = init_pos_x;
+	pos_y = init_pos_y;
+	button  = init_button;
+	prev_highlighted_button = -1;
 
-class Item_T
-{
-private:
-	int pos_x;
-	int pos_y;
-
-	int width;
-	int height;
-
-	ItemType_T type;
-	const char* bitmap;
-
-	//description text to be shown when cursor is over the item.
-
-public:
-	ItemId_T id;
-
-	Item_T(ItemId_T ident, int x, int y, ItemType_T ot, const char* fn, int item_width = 50, int item_height = 50);
-	void SetPosition(int x, int y);
-	void SetSize(int w, int h);
-	void Draw(void);
-};
-
-Item_T::Item_T(ItemId_T ident, int x, int y, ItemType_T ot, const char* fn, int item_width, int item_height)
-{
-	id     = ident;
-	pos_x  = x;
-	pos_y  = y;
-	type   = ot;
-	bitmap = fn;
-	width  = item_width;
-	height = item_height;
-}
-
-void Item_T::SetPosition(int x, int y)
-{
-	pos_x = x;
-	pos_y = y;
-}
-
-void Item_T::SetSize(int w, int h)
-{
-	width = w;
-	height = h;
-}
-
-void Item_T::Draw(void)
-{
-	readimagefile(bitmap, pos_x, pos_y, pos_x + width, pos_y + height);
-}
-
-//class Collection_T
-//{
-//	private:
-//		//SceneID_T id;
-//		const char* background;
-//		int item_count;
-//		Item_T** item;
-//
-//	public:
-//		Collection_T();
-//		void Add(Item_T* new_item);
-//		Item_T* Remove(ItemId_T item_id);
-//		void Draw(void);
-//};
-//
-//Collection_T::Collection_T()
-//{
-//	background = NULL;
-//	item_count = 0;
-//	item       = NULL;
-//}
-//
-//void Collection_T::Add(Item_T *new_item)
-//{
-//	if (NULL == item)
-//	{
-//		item_count++;
-//		item = new Item_T* [item_count];
-//		item[item_count - 1] = new_item;
-//	}
-//	else
-//	{
-//		/* Check if an item which we want to add already exists in the item array. */
-//		bool item_already_exists = false;
-//		for (int i = 0; i < item_count; i++)
-//		{
-//			if (item[i]->id == new_item->id)
-//			{
-//				item_already_exists = true;
-//				break;
-//			}
-//		}
-//
-//		if (false == item_already_exists)
-//		{
-//			/* Save the item pointer array to temp. */
-//			Item_T** temp = new Item_T* [item_count];
-//			for (int i = 0; i < item_count; i++)
-//			{
-//				temp[i] = item[i];
-//			}
-//
-//			delete[] item;
-//			item_count++;
-//
-//			/* Load the item pointer array from temp. */
-//			item = new Item_T* [item_count];
-//			for (int i = 0; i < item_count - 1; i++)
-//			{
-//				item[i] = temp[i];
-//			}
-//
-//			item[item_count - 1] = new_item;
-//		}
-//		else
-//		{
-//			// TODO: output ID names instead of ID numbers.
-//			//cout << "WARNING (Scene_T::AddItem()): Item with ID=" << new_item->id << " already exists in a scene with ID=" << this->id << endl;
-//		}
-//	}
-//}
-//
-//Item_T* Collection_T::Remove(ItemId_T item_id)
-//{
-//	Item_T* retval = NULL;
-//
-//	if (NULL != item)
-//	{
-//		/* Check if an item which we want to remove exists in the item array. */
-//		bool item_exists = false;
-//		for (int i = 0; i < item_count; i++)
-//		{
-//			if (item[i]->id == item_id)
-//			{
-//				item_exists = true;
-//				break;
-//			}
-//		}
-//
-//		if (true == item_exists)
-//		{
-//			if (1 == item_count)
-//			{
-//				retval = item[0];
-//				delete[] item;
-//				item = NULL;
-//				item_count = 0;
-//			}
-//			else
-//			{
-//				/* Find the item which we want to remove and copy all other items to a temp array. */
-//				Item_T** temp = new Item_T* [item_count - 1];
-//				int j = 0;
-//				for (int i = 0; i < item_count; i++)
-//				{
-//					if (item[i]->id == item_id)
-//					{
-//						retval = item[i];
-//					}
-//					else
-//					{
-//						temp[j] = item[i];
-//						j++;
-//					}
-//				}
-//				delete[] item;
-//
-//				item_count--;
-//
-//				/* Copy the temp array back to the item array. */
-//				item = new Item_T* [item_count];
-//				for (int i = 0; i < item_count; i++)
-//				{
-//					item[i] = temp[i];
-//				}
-//				delete[] temp;
-//			}
-//		}
-//		else
-//		{
-//			// TODO: output ID names instead of ID numbers.
-//			//cout << "WARNING (Scene_T::RemoveItem()): Item with ID=" << item_id << " does not exist in a scene with ID=" << this->id << endl;
-//		}
-//	}
-//
-//	return retval;
-//}
-//
-//void Collection_T::Draw(void)
-//{
-//	/* Print background image. */
-//	readimagefile(background, 0, 0, getmaxx(), getmaxy());
-//
-//	for (int i = 0; i < item_count; i++)
-//	{
-//		item[i]->Draw();
-//	}
-//}
-
-
-enum NodeName_T
-{
-	HOME    = 0,
-	PARKING = 1,
-	PUB     = 2,
-	FOREST  = 3,
-	SHOP    = 4
-};
-
-enum NodeType_T
-{
-	DISTRICT = 0,
-	SCENE    = 1
-};
-
-class Node_T
-{
-    private:
-        const int RADIUS = 30;
-
-		const char *name;
-		NodeType_T type;
-
-        int pos_x;
-        int pos_y;
- 
-        int color;
-
-		bool selected;
-        bool visible;
-
-        int neighbour_count;
-        Node_T **neighbour_node;
-
-    public:
-		NodeName_T id;
-
-        Node_T(int x, int y, NodeType_T node_type, NodeName_T id, const char* location_name);
-        void DrawConnection(void);
-        void DrawDirection(void);
-        void DrawNode(void) const;
-		void DrawAvailablePath(void);
-        void Connect(Node_T * new_node);
-        void Disconnect(Node_T* node);
-		bool isConnectedTo(Node_T* node) const;
-        void Select(void);
-        void Unselect(void);
-        void Show(void);
-        void Hide(void);
-		bool isVisible(void) const;
-};
-
-Node_T::Node_T(int x, int y, NodeType_T node_type, NodeName_T ident, const char *node_name)
-{
-	name = node_name;
-	id = ident;
-	type = node_type;
-
-    pos_x = x;
-    pos_y = y;
-
-    color = WHITE;
-
-	selected = false;
-    visible = false;
-
-    neighbour_count = 0;
-	//neighbour_node = new Node_T* [0];
-	neighbour_node = NULL;
-}
-
-/* Draw lines connecting two neighbour nodes. */
-void Node_T::DrawConnection(void)
-{
-	if (true == visible)
+	/* Find length of the longest text string in the menu. */
+	longest_button = -1;
+	for (int i = 0; i < btn_cnt; i++)
 	{
-		setcolor(color);
-		for (int i = 0; i < neighbour_count; i++)
+		int len = strlen(button[i].text);
+		if (len > longest_button)
 		{
-			if (true == neighbour_node[i]->visible)
-			{
-				line(pos_x, pos_y, neighbour_node[i]->pos_x, neighbour_node[i]->pos_y);
-			}
-		}
-	}
-}
-
-/* Draw marks on connecting lines next to neighbour nodes (to symbolize direction to the node). */
-void Node_T::DrawDirection(void)
-{
-	if (true == visible)
-	{
-		for (int i = 0; i < neighbour_count; i++)
-		{
-			if (true == neighbour_node[i]->visible)
-			{
-				int vx = neighbour_node[i]->pos_x - pos_x;
-				int vy = neighbour_node[i]->pos_y - pos_y;
-
-				double len = sqrt(vx * vx + vy * vy);
-				int x = (int) (pos_x + (len - RADIUS) / len * vx);
-				int y = (int) (pos_y + (len - RADIUS) / len * vy);
-
-				setfillstyle(SOLID_FILL, GREEN);
-				setcolor(GREEN);
-				fillellipse(x, y, RADIUS / 4, RADIUS / 4);
-			}
-		}
-	}
-}
-
-/* Draw a circle representing a node. */
-void Node_T::DrawNode(void) const
-{
-    if (true == visible)
-    {
-        setfillstyle(SOLID_FILL, (true == selected) ? RED : _COLOR_BACKGROUND);
-		setbkcolor((true == selected) ? RED : _COLOR_BACKGROUND);
-        setcolor(color);
-        fillellipse(pos_x, pos_y, RADIUS, RADIUS);
-		settextjustify(CENTER_TEXT, CENTER_TEXT);
-        outtextxy(pos_x, pos_y, (char *) name);
-    }
-}
-
-void Node_T::DrawAvailablePath(void)
-{
-	static int blink_color = _COLOR_BACKGROUND;
-	blink_color = (_COLOR_BACKGROUND == blink_color) ? WHITE : _COLOR_BACKGROUND;
-
-	for (int i = 0; i < neighbour_count; i++)
-	{
-		if (true == neighbour_node[i]->visible)
-		{
-			setcolor(blink_color);
-			setlinestyle(DASHED_LINE, 0, NORM_WIDTH);
-			circle(neighbour_node[i]->pos_x, neighbour_node[i]->pos_y, RADIUS);
-			setlinestyle(SOLID_LINE, 0, NORM_WIDTH);
-		}
-	}
-}
-
-/* TODO: Zeby adept na <TEMPLATE> ?? */
-void Node_T::Connect(Node_T* new_node)
-{
-	if (NULL == neighbour_node)
-	{
-		neighbour_count++;
-		neighbour_node = new Node_T* [neighbour_count];
-	}
-	else
-	{
-		/* Save the item pointer array to temp. */
-	    Node_T **temp = new Node_T* [neighbour_count];
-		for (int i = 0; i < neighbour_count; i++)
-		{
-			temp[i] = neighbour_node[i];
-		}
-
-		delete[] neighbour_node;
-		neighbour_count++;
-
-		/* Load the item pointer array from temp. */
-		neighbour_node = new Node_T* [neighbour_count];
-		for (int i = 0; i < neighbour_count - 1; i++)
-		{
-			neighbour_node[i] = temp[i];
+			longest_button = len;
 		}
 	}
 
-    neighbour_node[neighbour_count - 1] = new_node;
-}
-
-void Node_T::Disconnect(Node_T* node)
-{
-
-}
-
-bool Node_T::isConnectedTo(Node_T* node) const
-{
-	bool connected = false;
-
-	for (int i = 0; i < neighbour_count; i++)
+	/* Initialize positions and sizes of particular buttons in the menu. */
+	for (int i = 0; i < btn_cnt; i++)
 	{
-		if (neighbour_node[i]->id == node->id)
+		button[i].SetPosition(pos_x, pos_y + i * LETTER_HEIGHT);
+		button[i].SetSize(LETTER_WIDTH * longest_button, LETTER_HEIGHT);
+	}
+}
+
+int Menu_T::getButtonUnderCursor(const int cursor_x, const int cursor_y) const
+{
+	int button_under_cursor = -1;
+
+	for (int i = 0; i < btn_cnt; i++)
+	{
+		if (true == button[i].isCursorAbove(cursor_x, cursor_y))
 		{
-			connected = true;
+			button_under_cursor = i;
 			break;
 		}
 	}
 
-	return connected;
+	return button_under_cursor;
 }
 
-void Node_T::Select(void)
+void Menu_T::Draw(void)
 {
-    selected = true;
-}
+	const int FRAME_THICKNESS = 6;
 
-void Node_T::Unselect(void)
-{
-	selected = false;
-}
+	const int FRAME_WIDTH  = 2 * FRAME_THICKNESS + longest_button * LETTER_WIDTH;
+	const int FRAME_HEIGHT = 1 * FRAME_THICKNESS + btn_cnt * LETTER_HEIGHT;
 
-void Node_T::Show(void)
-{
-    visible = true;
-}
+	const int FRAME_OFFSET_X = pos_x - FRAME_THICKNESS;
+	const int FRAME_OFFSET_Y = pos_y /*- FRAME_THICKNESS*/;
 
-void Node_T::Hide(void)
-{
-    visible = false;
-}
-
-bool Node_T::isVisible(void) const
-{
-	return visible;
-}
-
-class Map_T
-{
-    private:
-        static const int NODE_COUNT = 5;
-		NodeName_T selected;
-
-	public:
-		Node_T node[NODE_COUNT] =
-        {
-            Node_T(300, 300, DISTRICT, HOME,    "Home"),
-            Node_T(200, 100, DISTRICT, PARKING, "Parking"),
-            Node_T(100, 100, DISTRICT, PUB,     "Pub"),
-            Node_T(100, 300, DISTRICT, FOREST,  "Forest"),
-			Node_T(400, 100, DISTRICT, SHOP,    "Shop")
-        };
-            
-        Map_T();
-        void Draw(void);
-        void Select(NodeName_T node);
-};
-
-Map_T::Map_T()
-{
-	selected = HOME;
-	node[selected].Select();
-}
-
-void Map_T::Draw(void)
-{
-    for (int i = 0; i < NODE_COUNT; i++) { node[i].DrawConnection(); }
-    for (int i = 0; i < NODE_COUNT; i++) { node[i].DrawDirection();  }
-    for (int i = 0; i < NODE_COUNT; i++) { node[i].DrawNode();       }
-
-	while (!kbhit())
-	{
-		node[selected].DrawAvailablePath();
-		delay(350);
-		node[selected].DrawAvailablePath();
-		delay(350);
-	}
-}
-
-void Map_T::Select(NodeName_T idx)
-{
-	if (true == node[idx].isVisible())
-	{
-		if (true == node[selected].isConnectedTo(&node[idx]))
-		{
-			node[selected].Unselect();
-			node[idx].Select();
-			selected = idx;
-		}
-	}
-}
-
-enum SceneID_T
-{
-	HOME_KITCHEN     = 0,
-	HOME_BED_ROOM    = 1,
-	HOME_LIVING_ROOM = 2,
-	HOME_STUDIO      = 3
-};
-
-class Scene_T
-{
-
-	private:
-		static const int TOP       = 0; 
-		static const int LEFT      = 0;
-		static const int BOTTOM    = 378; // TODO: Bind it somehow with constant Inventory_T->TOP!!
-		static const int RIGHT     = 639 - 10; /* There must be some bug in the WinBGIm library. */
-
-		SceneID_T id;
-		const char* background;
-		int item_count;
-		Item_T** item;
-
-	public:
-		Scene_T(SceneID_T ident, const char* scene_bitmap);
-		void AddItem(Item_T *new_item);
-		Item_T* RemoveItem(ItemId_T item_id);
-		void Draw(void);
-};
-
-Scene_T::Scene_T(SceneID_T ident, const char* scene_bitmap)
-{
-	id         = ident;
-	background = scene_bitmap;
-	item_count = 0;
-	item       = NULL;
-}
-
-/* TODO: Zeby adept na <TEMPLATE> ?? */
-void Scene_T::AddItem(Item_T *new_item)
-{
-	if (NULL == item)
-	{
-		item_count++;
-		item = new Item_T* [item_count];
-		item[item_count - 1] = new_item;
-	}
-	else
-	{
-		/* Check if an item which we want to add already exists in the item array. */
-		bool item_already_exists = false;
-		for (int i = 0; i < item_count; i++)
-		{
-			if (item[i]->id == new_item->id)
-			{
-				item_already_exists = true;
-				break;
-			}
-		}
-
-		if (false == item_already_exists)
-		{
-			/* Save the item pointer array to temp. */
-			Item_T** temp = new Item_T* [item_count];
-			for (int i = 0; i < item_count; i++)
-			{
-				temp[i] = item[i];
-			}
-
-			delete[] item;
-			item_count++;
-
-			/* Load the item pointer array from temp. */
-			item = new Item_T* [item_count];
-			for (int i = 0; i < item_count - 1; i++)
-			{
-				item[i] = temp[i];
-			}
-
-			item[item_count - 1] = new_item;
-		}
-		else
-		{
-			// TODO: output ID names instead of ID numbers.
-			cout << "WARNING (Scene_T::AddItem()): Item with ID=" << new_item->id << " already exists in a scene with ID=" << this->id << endl;
-		}
-	}
-}
-
-Item_T* Scene_T::RemoveItem(ItemId_T item_id)
-{
-	Item_T* retval = NULL;
-
-	if (NULL != item)
-	{
-		/* Check if an item which we want to remove exists in the item array. */
-		bool item_exists = false;
-		for (int i = 0; i < item_count; i++)
-		{
-			if (item[i]->id == item_id)
-			{
-				item_exists = true;
-				break;
-			}
-		}
-
-		if (true == item_exists)
-		{
-			if (1 == item_count)
-			{
-				retval = item[0];
-				delete[] item;
-				item = NULL;
-				item_count = 0;
-			}
-			else
-			{
-				/* Find the item which we want to remove and copy all other items to a temp array. */
-				Item_T** temp = new Item_T* [item_count - 1];
-				int j = 0;
-				for (int i = 0; i < item_count; i++)
-				{
-					if (item[i]->id == item_id)
-					{
-						retval = item[i];
-					}
-					else
-					{
-						temp[j] = item[i];
-						j++;
-					}
-				}
-				delete[] item;
-
-				item_count--;
-
-				/* Copy the temp array back to the item array. */
-				item = new Item_T* [item_count];
-				for (int i = 0; i < item_count; i++)
-				{
-					item[i] = temp[i];
-				}
-				delete[] temp;
-			}
-		}
-		else
-		{
-			// TODO: output ID names instead of ID numbers.
-			cout << "WARNING (Scene_T::RemoveItem()): Item with ID=" << item_id << " does not exist in a scene with ID=" << this->id << endl;
-		}
-	}
-
-	return retval;
-}
-
-void Scene_T::Draw(void)
-{
-	/* Print background image. */
-	//viewporttype viewport;
-	//getviewsettings(&viewport);
-	//setbkcolor(LIGHTGREEN);
-	//clearviewport();
-
-
-	/* Print background image. */
-	//setviewport(LEFT, TOP, RIGHT, BOTTOM, 0);
-	readimagefile(background, 0, 0, RIGHT, BOTTOM);
-
-	for (int i = 0; i < item_count; i++)
-	{
-		item[i]->Draw();
-	}
-}
-
-void Handler_WM_MOUSEMOVE(int x, int y)
-{
-
-}
-
-void Handler_WM_LBUTTONDOWN(int x, int y)
-{
-	//if (MAP == view)
-	//{
-
-	//}
-}
-
-void Handler_WM_LBUTTONDBLCLK(int x, int y)
-{
-
-}
-
-void Handler_WM_LBUTTONUP(int x, int y)
-{
-
-}
-
-void Handler_WM_MBUTTONDBLCLK(int x, int y)
-{
-
-}
-
-void Handler_WM_MBUTTONDOWN(int x, int y)
-{
-
-}
-
-void Handler_WM_MBUTTONUP(int x, int y)
-{
-
-}
-
-void Handler_WM_RBUTTONDBLCLK(int x, int y)
-{
-
-}
-
-void Handler_WM_RBUTTONDOWN(int x, int y)
-{
-
-}
-
-void Handler_WM_RBUTTONUP(int x, int y)
-{
-
-}
-
-class Cursor_T
-{
-	private:
-		static const int SIZE = 20;
-
-		int pos_x;
-		int pos_y;
-
-		const char* icon;
-
-	public:
-		Cursor_T();
-		void GetPosition(void);
-		void Draw(void);
-};
-
-Cursor_T::Cursor_T()
-{
-	pos_x = 0;
-	pos_y = 0;
-
-	icon = NULL;
-
-	registermousehandler(WM_MOUSEMOVE,     Handler_WM_MOUSEMOVE);
-	registermousehandler(WM_LBUTTONDOWN,   Handler_WM_LBUTTONDOWN);
-	registermousehandler(WM_LBUTTONUP,     Handler_WM_LBUTTONUP);
-	registermousehandler(WM_LBUTTONDBLCLK, Handler_WM_LBUTTONDBLCLK);
-	registermousehandler(WM_MBUTTONDOWN,   Handler_WM_MBUTTONDOWN);
-	registermousehandler(WM_MBUTTONUP,     Handler_WM_MBUTTONUP);
-	registermousehandler(WM_MBUTTONDBLCLK, Handler_WM_MBUTTONDBLCLK);
-	registermousehandler(WM_RBUTTONDOWN,   Handler_WM_RBUTTONDOWN);
-	registermousehandler(WM_RBUTTONUP,     Handler_WM_RBUTTONUP);
-	registermousehandler(WM_RBUTTONDBLCLK, Handler_WM_RBUTTONDBLCLK);
-}
-
-void Cursor_T::GetPosition(void)
-{
-	pos_x = mousex();
-	pos_y = mousey();
-}
-
-void Cursor_T::Draw(void)
-{
-	readimagefile(icon, pos_x, pos_y, pos_x - SIZE, pos_y - SIZE);
-}
-
-static int GetMaxX(viewporttype &viewport)
-{
-	return viewport.right - viewport.left;
-}
-
-static int GetMaxY(viewporttype &viewport)
-{
-	return viewport.bottom - viewport.top;
-}
-
-static void Frame(int left, int top, int right, int bottom, int thickness, int linestyle = SOLID_LINE)
-{
-	setlinestyle(linestyle, 0, NORM_WIDTH);
-	for (int i = 0; i < thickness; i++)
-	{
-		rectangle(left + i, top + i, right - i, bottom - i);
-	}
-}
-
-class Inventory_T
-{
-	private:
-		static const int VISIBLE_ITEMS_COUNT = 5;
-		static const int FRAME_THICKNESS = 4;
-		static const int LEFT      = 0;
-		static const int TOP       = 379; // TODO: Bind somehow to the Scene dimensions.
-		static const int BOTTOM    = 479 - 10; /* There must be some bug in the WinBGIm library. */
-		static const int SLOT_SIZE = (BOTTOM - TOP) - FRAME_THICKNESS * 2;
-		static const int ITEM_SIZE = (BOTTOM - TOP) - FRAME_THICKNESS * 4;
-		static const int RIGHT     = (SLOT_SIZE - FRAME_THICKNESS) * VISIBLE_ITEMS_COUNT +
-			3 * FRAME_THICKNESS;
-
-		const char* background;
-		int item_count;
-		Item_T** item;
-
-public:
-	Inventory_T();
-	void Add(Item_T* new_item);
-	Item_T* Remove(ItemId_T item_id);
-	void ShiftRight(void);
-	void ShiftLeft(void);
-	void Draw(void);
-};
-
-Inventory_T::Inventory_T()
-{
-	background = NULL;
-	item_count = 0;
-	item       = NULL;
-}
-
-void Inventory_T::Add(Item_T *new_item)
-{
-	if (NULL == item)
-	{
-		item_count++;
-		item = new Item_T* [item_count];
-		item[item_count - 1] = new_item;
-	}
-	else
-	{
-		/* Check if an item which we want to add already exists in the item array. */
-		bool item_already_exists = false;
-		for (int i = 0; i < item_count; i++)
-		{
-			if (item[i]->id == new_item->id)
-			{
-				item_already_exists = true;
-				break;
-			}
-		}
-
-		if (false == item_already_exists)
-		{
-			/* Save the item pointer array to temp. */
-			Item_T** temp = new Item_T* [item_count];
-			for (int i = 0; i < item_count; i++)
-			{
-				temp[i] = item[i];
-			}
-
-			delete[] item;
-			item_count++;
-
-			/* Load the item pointer array from temp. */
-			item = new Item_T* [item_count];
-			for (int i = 0; i < item_count - 1; i++)
-			{
-				item[i] = temp[i];
-			}
-
-			item[item_count - 1] = new_item;
-		}
-		else
-		{
-			// TODO: output ID names instead of ID numbers.
-			//cout << "WARNING (Scene_T::AddItem()): Item with ID=" << new_item->id << " already exists in a scene with ID=" << this->id << endl;
-		}
-	}
-}
-
-Item_T* Inventory_T::Remove(ItemId_T item_id)
-{
-	Item_T* retval = NULL;
-
-	if (NULL != item)
-	{
-		/* Check if an item which we want to remove exists in the item array. */
-		bool item_exists = false;
-		for (int i = 0; i < item_count; i++)
-		{
-			if (item[i]->id == item_id)
-			{
-				item_exists = true;
-				break;
-			}
-		}
-
-		if (true == item_exists)
-		{
-			if (1 == item_count)
-			{
-				retval = item[0];
-				delete[] item;
-				item = NULL;
-				item_count = 0;
-			}
-			else
-			{
-				/* Find the item which we want to remove and copy all other items to a temp array. */
-				Item_T** temp = new Item_T* [item_count - 1];
-				int j = 0;
-				for (int i = 0; i < item_count; i++)
-				{
-					if (item[i]->id == item_id)
-					{
-						retval = item[i];
-					}
-					else
-					{
-						temp[j] = item[i];
-						j++;
-					}
-				}
-				delete[] item;
-
-				item_count--;
-
-				/* Copy the temp array back to the item array. */
-				item = new Item_T* [item_count];
-				for (int i = 0; i < item_count; i++)
-				{
-					item[i] = temp[i];
-				}
-				delete[] temp;
-			}
-		}
-		else
-		{
-			// TODO: output ID names instead of ID numbers.
-			//cout << "WARNING (Scene_T::RemoveItem()): Item with ID=" << item_id << " does not exist in a scene with ID=" << this->id << endl;
-		}
-	}
-
-	return retval;
-}
-
-void Inventory_T::ShiftRight(void)
-{
-
-}
-
-void Inventory_T::ShiftLeft(void)
-{
-
-}
-
-void Inventory_T::Draw(void)
-{
-	/* Print background image. */
-	viewporttype viewport;
-	setviewport(LEFT, TOP, RIGHT, BOTTOM, 0);
-	getviewsettings(&viewport);
-	setbkcolor(LIGHTGREEN);
-	clearviewport();
-
-	/* Print frame around the inventory window. */
 	setcolor(GREEN);
-	Frame(0, 0 , GetMaxX(viewport), GetMaxY(viewport), FRAME_THICKNESS);
-
-	/* Print slot frames. */
-	setcolor(GREEN);
-	setlinestyle(SOLID_LINE, 0, NORM_WIDTH);
-	int OFFSET_X = FRAME_THICKNESS;
-	int OFFSET_Y = FRAME_THICKNESS;
-	for (int i = 0; i < VISIBLE_ITEMS_COUNT; i++)
-	{
-		Frame(OFFSET_X + i * (SLOT_SIZE - FRAME_THICKNESS)            , OFFSET_Y + 0,
-			  OFFSET_X + i * (SLOT_SIZE - FRAME_THICKNESS) + SLOT_SIZE, OFFSET_Y + SLOT_SIZE,
-			  FRAME_THICKNESS);
-	}
-
-	/* Print inventory items. */
-	for (int i = 0; i < VISIBLE_ITEMS_COUNT; i++)
-	{
-		if (i < item_count)
-		{
-			/* Print item. */
-			OFFSET_X = 2 * FRAME_THICKNESS;
-			OFFSET_Y = 2 * FRAME_THICKNESS;
-			item[i]->SetPosition(i * (SLOT_SIZE - FRAME_THICKNESS) + OFFSET_X, OFFSET_Y);
-			item[i]->SetSize(ITEM_SIZE, ITEM_SIZE);
-			item[i]->Draw();
-		}
-		else
-		{
-			/* Print "Empty". */
-			OFFSET_X = 1 * FRAME_THICKNESS + SLOT_SIZE / 2;
-			OFFSET_Y = 2 * FRAME_THICKNESS;
-			int x = OFFSET_X + i * (SLOT_SIZE - FRAME_THICKNESS);
-			int y = OFFSET_Y + SLOT_SIZE / 2;
-			settextjustify(CENTER_TEXT, CENTER_TEXT);
-			outtextxy(x, y, "Empty");
-		}
-	}
-
-	/* Print selection frame. */
-	setcolor(YELLOW);
-	const int SELECT = 2;
-	OFFSET_X = 2 * FRAME_THICKNESS;
-	OFFSET_Y = 2 * FRAME_THICKNESS;
-	Frame(SELECT * (SLOT_SIZE - FRAME_THICKNESS) + OFFSET_X , OFFSET_Y + 0,
-		SELECT * (SLOT_SIZE - FRAME_THICKNESS) + SLOT_SIZE, SLOT_SIZE,
+	Frame(FRAME_OFFSET_X,
+		  FRAME_OFFSET_Y,
+		  FRAME_OFFSET_X + FRAME_WIDTH,
+		  FRAME_OFFSET_Y + FRAME_HEIGHT,
 		  FRAME_THICKNESS);
+
+	for (int i = 0; i < btn_cnt; i++)
+	{
+		button[i].Draw(/*pos_x, pos_y + i * LETTER_HEIGHT*/);
+	}
 }
 
-static const int ITEM_COUNT_TOTAL = 9;
-
-Item_T item[ITEM_COUNT_TOTAL] =
+enum Buttons_MenuMain_T
 {
-	Item_T(KOFOLA,   100, 100, STATIC, "..\\kofola.gif", 25, 75),
-	Item_T(RUM,      200, 100, STATIC, "..\\rum.jpg",    75, 75),
-	Item_T(GUITAR,   300, 100, STATIC, "..\\guitar.jpg"),
-	Item_T(NOTEBOOK, 400, 100, STATIC, "..\\notebook.jpg"),
-	Item_T(FRIDGE,   500, 80,  STATIC, "..\\fridge.jpg", 75, 200),
-	Item_T(OVEN,     300, 100, STATIC, "..\\oven.jpg"),
-	Item_T(BOOTS,    300, 100, STATIC, "..\\boots.jpg"),
-	Item_T(PICTURE,  300, 100, STATIC, "..\\picture.jpg"),
-	Item_T(TV,       300, 100, STATIC, "..\\tv.jpg")
+	ID_BTN_MAINMENU = 0,
+	ID_BTN_NEWGAME  = 1,
+	ID_BTN_SAVE     = 2,
+	ID_BTN_LOAD     = 3,
+	ID_BTN_SETTINGS = 4,
+	ID_BTN_CREDIT   = 5,
+	ID_BTN_EXIT     = 6,
+	ID_BTN_CANCEL   = 7,
 };
 
-static const int SCENE_COUNT = 4;
-Scene_T scene[SCENE_COUNT] =
+Button_T gButtons_MenuMain[] =
 {
-	Scene_T(HOME_KITCHEN,     "..\\test.jpg"),
-	Scene_T(HOME_BED_ROOM,    "..\\test.jpg"),
-	Scene_T(HOME_LIVING_ROOM, "..\\test.jpg"),
-	Scene_T(HOME_STUDIO,      "..\\skusobna.jpg"),
+	/*       Id                                                   X  Y  W  H  Frame  Click  GoToScene   Text        */
+	Button_T(Button_T::Id_T::NONE/*(ButtonId_T)ID_BTN_MAINMENU*/, 0, 0, 0, 0, false, false, SCENE_NONE, "   Menu   "),
+	Button_T(Button_T::Id_T::NONE/*(ButtonId_T)ID_BTN_NEWGAME */, 0, 0, 0, 0, false, false, SCENE_NONE, " New game "),
+	Button_T(Button_T::Id_T::NONE/*(ButtonId_T)ID_BTN_SAVE    */, 0, 0, 0, 0, false, false, SCENE_NONE, "   Save   "),
+	Button_T(Button_T::Id_T::NONE/*(ButtonId_T)ID_BTN_LOAD    */, 0, 0, 0, 0, false, false, SCENE_NONE, "   Load   "),
+	Button_T(Button_T::Id_T::NONE/*(ButtonId_T)ID_BTN_SETTINGS*/, 0, 0, 0, 0, false, false, SCENE_NONE, " Settings "),
+	Button_T(Button_T::Id_T::NONE/*(ButtonId_T)ID_BTN_CREDIT  */, 0, 0, 0, 0, false, false, SCENE_NONE, "  Credit  "),
+	Button_T(Button_T::Id_T::NONE/*(ButtonId_T)ID_BTN_EXIT    */, 0, 0, 0, 0, false, false, SCENE_NONE, "   Exit   "),
+	Button_T(Button_T::Id_T::NONE/*(ButtonId_T)ID_BTN_CANCEL  */, 0, 0, 0, 0, false, false, SCENE_NONE, "  Cancel  "),
+};
+Menu_T gMenuMain(sizeof(gButtons_MenuMain) / sizeof(Button_T), 200, 50, gButtons_MenuMain);
+
+Button_T gButtons_MenuCredit[] =
+{
+	/*       Id                    X  Y  W  H  Frame  Click  GoToScene   Text              */
+	Button_T(Button_T::Id_T::NONE, 0, 0, 0, 0, false, false, SCENE_NONE, "     Credit     "),
+	Button_T(Button_T::Id_T::NONE, 0, 0, 0, 0, false, false, SCENE_NONE, "Programming:    "),
+	Button_T(Button_T::Id_T::NONE, 0, 0, 0, 0, false, false, SCENE_NONE, "  Jozko Mrkvicka"),
+	Button_T(Button_T::Id_T::NONE, 0, 0, 0, 0, false, false, SCENE_NONE, "                "),
+	Button_T(Button_T::Id_T::NONE, 0, 0, 0, 0, false, false, SCENE_NONE, "Level design:   "),
+	Button_T(Button_T::Id_T::NONE, 0, 0, 0, 0, false, false, SCENE_NONE, "  Janko Haluska "),
+	Button_T(Button_T::Id_T::NONE, 0, 0, 0, 0, false, false, SCENE_NONE, "                "),
+	Button_T(Button_T::Id_T::NONE, 0, 0, 0, 0, false, false, SCENE_NONE, "Graphics:       "),
+	Button_T(Button_T::Id_T::NONE, 0, 0, 0, 0, false, false, SCENE_NONE, "  5o            "),
+};
+Menu_T gMenuCredit(sizeof(gButtons_MenuCredit) / sizeof(Button_T), 200, 100, gButtons_MenuCredit);
+
+
+/* By design, order of items in the gItem array must be the same as order of enums in the ItemId_T type. */
+static const int ITEM_COUNT_TOTAL = 12;
+Item_T gItem[ITEM_COUNT_TOTAL] =
+{   /*     Id_T                  X    Y    Frame  Type                 GoToScene          W    H  Bitmap              Text */
+	Item_T(Item_T::KOFOLA,       400, 300, false, Item_T::COLLECTIBLE, SCENE_NONE,       75,  75, "..\\kofola.jpg",   "N/A"),
+	Item_T(Item_T::RUM,          490, 300, false, Item_T::COLLECTIBLE, SCENE_NONE,       75,  75, "..\\rum.jpg",      "N/A"),
+	Item_T(Item_T::GUITAR,       200, 180, false, Item_T::COLLECTIBLE, SCENE_NONE,       75,  75, "..\\guitar.jpg",   "N/A"),
+	Item_T(Item_T::NOTEBOOK,     200, 300, false, Item_T::COLLECTIBLE, SCENE_NONE,       50,  50, "..\\notebook.jpg", "N/A"),
+	Item_T(Item_T::FRIDGE,       500, 120, true,  Item_T::STATIC,      SCENE_NONE,      100, 150, "..\\fridge.jpg",   "N/A"),
+	Item_T(Item_T::OVEN,         420, 100, false, Item_T::COLLECTIBLE, SCENE_NONE,       75,  75, "..\\oven.jpg",     "N/A"),
+	Item_T(Item_T::BOOTS,         80, 250, false, Item_T::COLLECTIBLE, SCENE_NONE,       50,  50, "..\\boots.jpg"     "N/A"),
+	Item_T(Item_T::PICTURE,       75,  75, false, Item_T::COLLECTIBLE, SCENE_NONE,      100, 100, "..\\picture.jpg",  "N/A"),
+	Item_T(Item_T::TV,           400, 170, false, Item_T::STATIC,      SCENE_NONE,      100, 100, "..\\tv.jpg",       "N/A"),
+	Item_T(Item_T::DOOR,         291, 102, false, Item_T::LINK,        SCENE_HOME,       85, 145, "..\\door.jpg",     "N/A"),
+	Item_T(Item_T::CAR,          250, 220, false, Item_T::LINK,        SCENE_GO_TO_MAP, 350, 145, "..\\car.jpg",      "N/A"),
+	Item_T(Item_T::STUDIO_ENTRY, 170, 180, false, Item_T::LINK,        SCENE_STUDIO,     60,  40, NULL,               "N/A"),
 };
 
-//enum View_T
-//{
-//	MAP = 0,
-//	SCENE = 1
-//};
-//View_T view = MAP;
-
-Inventory_T inventory;
-
-static void __inventory(void)
+/* By design, order of scenes in the gScene array must be the same as order of enums in the SceneID_T type. */
+static const int SCENE_COUNT = 10;
+Scene_T gScene[SCENE_COUNT] =
 {
-	inventory.Add(&item[KOFOLA]);
-	inventory.Add(&item[RUM]);
-	inventory.Add(&item[GUITAR]);
-	inventory.Add(&item[NOTEBOOK]);
-	inventory.Add(&item[FRIDGE]);
-	inventory.Add(&item[OVEN]);
-	inventory.Add(&item[BOOTS]);
-	inventory.Add(&item[PICTURE]);
-	inventory.Add(&item[TV]);
-	inventory.Draw();
-	getch();
+	Scene_T(SCENE_KITCHEN,     "..\\test.jpg"),
+	Scene_T(SCENE_BED_ROOM,    "..\\test.jpg"),
+	Scene_T(SCENE_LIVING_ROOM, "..\\test.jpg"),
+	Scene_T(SCENE_STUDIO,      "..\\studio.jpg"),
+	Scene_T(SCENE_BRIDGE,      "..\\bridge.jpg"),
+	Scene_T(SCENE_PUB,         "..\\pub.jpg"),
+	Scene_T(SCENE_FOREST,      "..\\forest.jpg"),
+	Scene_T(SCENE_SHOP,        "..\\shop.jpg"),
+	Scene_T(SCENE_DOWNTOWN,    "..\\downtown.jpg"),
+	Scene_T(SCENE_HOME,        "..\\home.jpg"),
+};
 
-	inventory.Remove(KOFOLA);
-	inventory.Draw();
-	getch();
+void MouseMove(void);
+void MouseClickLeft(void);
 
-	inventory.Remove(RUM);
-	inventory.Draw();
-	getch();
-
-	inventory.Remove(GUITAR);
-	inventory.Draw();
-	getch();
-
-	inventory.Remove(NOTEBOOK);
-	inventory.Draw();
-	getch();
-
-	inventory.Remove(FRIDGE);
-	inventory.Draw();
-	getch();
-
-	inventory.Remove(OVEN);
-	inventory.Draw();
-	getch();
-
-	inventory.Remove(BOOTS);
-	inventory.Draw();
-	getch();
-
-	inventory.Remove(PICTURE);
-	inventory.Draw();
-	getch();
-
-	inventory.Remove(TV);
-	inventory.Draw();
+static void __control(void)
+{
+	
 }
 
-static void __scene(void)
+static void InitScene(void)
 {
-	//scene[HOME_STUDIO].AddItem(&item[RUM]);
-	//scene[HOME_STUDIO].AddItem(&item[GUITAR]);
-	//scene[HOME_STUDIO].AddItem(&item[NOTEBOOK]);
-	//scene[HOME_STUDIO].AddItem(&item[FRIDGE]);
-	scene[HOME_STUDIO].Draw();
+	gScene[SCENE_STUDIO].AddItem(&gItem[Item_T::FRIDGE]);
+	gScene[SCENE_STUDIO].AddItem(&gItem[Item_T::KOFOLA]);
+	gScene[SCENE_STUDIO].AddItem(&gItem[Item_T::TV]);
+	gScene[SCENE_STUDIO].AddItem(&gItem[Item_T::RUM]);
+	gScene[SCENE_STUDIO].AddItem(&gItem[Item_T::GUITAR]);
+	gScene[SCENE_STUDIO].AddItem(&gItem[Item_T::BOOTS]);
+	gScene[SCENE_STUDIO].AddItem(&gItem[Item_T::NOTEBOOK]);
+	gScene[SCENE_STUDIO].AddItem(&gItem[Item_T::OVEN]);
+	gScene[SCENE_STUDIO].AddItem(&gItem[Item_T::PICTURE]);
+	gScene[SCENE_STUDIO].AddItem(&gItem[Item_T::DOOR]);
+
+	gScene[SCENE_HOME].AddItem(&gItem[Item_T::CAR]);
+	gScene[SCENE_HOME].AddItem(&gItem[Item_T::STUDIO_ENTRY]);
 }
 
-static void __map(void)
+static void __inventory_init(void)
 {
-	Map_T map;
-
-	map.node[HOME   ].Show();
-	map.node[PARKING].Show();
-	map.node[PUB    ].Show();
-	map.node[FOREST ].Show();
-	map.node[SHOP   ].Show();
-
-	map.node[HOME   ].Connect(&map.node[PARKING]);
-	map.node[HOME   ].Connect(&map.node[PUB    ]);
-	map.node[HOME   ].Connect(&map.node[FOREST ]);
-	map.node[PARKING].Connect(&map.node[HOME   ]);
-	map.node[PARKING].Connect(&map.node[SHOP   ]);
-
-	//map.Select(HOME);
-	//map.Draw();
-	//getch();
-
-	//map.Select(PARKING);
-	map.Draw();
+	//gInventory.Add(&item[FRIDGE]);
+	//gInventory.Add(&item[KOFOLA]);
+	//gInventory.Add(&item[TV]);
+	//gInventory.Add(&item[RUM]);
+	//gInventory.Add(&item[GUITAR]);
+	//gInventory.Add(&item[BOOTS]);
+	//gInventory.Add(&item[NOTEBOOK]);
+	//gInventory.Add(&item[OVEN]);
+	//gInventory.Add(&item[PICTURE]);
 }
 
-static void __WindowOpen(void)
+static void InitMap(void)
+{
+	gMap.node[Node_T::HOME    ].Show();
+	gMap.node[Node_T::BRIDGE  ].Show();
+	gMap.node[Node_T::PUB     ].Show();
+	gMap.node[Node_T::FOREST  ].Show();
+	gMap.node[Node_T::SHOP    ].Show();
+	gMap.node[Node_T::DOWNTOWN].Show();
+
+	gMap.node[Node_T::HOME    ].newly_created = false;
+	gMap.node[Node_T::BRIDGE  ].newly_created = false;
+	gMap.node[Node_T::PUB     ].newly_created = true;
+	gMap.node[Node_T::FOREST  ].newly_created = false;
+	gMap.node[Node_T::SHOP    ].newly_created = false;
+	gMap.node[Node_T::DOWNTOWN].newly_created = false;
+
+	gMap.node[Node_T::HOME    ].Enable();
+	gMap.node[Node_T::PUB     ].Enable();
+	gMap.node[Node_T::BRIDGE  ].Enable();
+	gMap.node[Node_T::FOREST  ].Enable();
+
+	gMap.node[Node_T::HOME    ].Connect(gMap.node[Node_T::BRIDGE  ]);
+	gMap.node[Node_T::HOME    ].Connect(gMap.node[Node_T::DOWNTOWN]);
+	gMap.node[Node_T::HOME    ].Connect(gMap.node[Node_T::FOREST  ]);
+	gMap.node[Node_T::BRIDGE  ].Connect(gMap.node[Node_T::HOME    ]);
+	gMap.node[Node_T::DOWNTOWN].Connect(gMap.node[Node_T::SHOP    ]);
+	gMap.node[Node_T::DOWNTOWN].Connect(gMap.node[Node_T::PUB     ]);
+}
+
+static void WindowOpen(void)
 {
     int width         = 640;
     int height        = 480;
     const char* title = "Adventure";
-    int left          = 600;
+    int left          = 100;
     int top           = 20;
     bool dbflag       = true;
     bool closeflag    = true;
     initwindow(width, height, title, left, top, dbflag, closeflag);
     setvisualpage(1);
     setactivepage(1);
+	Cursor_T cursor;
 }
 
-static void __WindowClose(void)
+static void WindowClose(void)
 {
 	closegraph();
 }
 
+#include "class_element.h"
+
+
 int main(void)
 {
     cout << "### Adventure ###" << std::endl;
-	__WindowOpen();
+	WindowOpen();
 
-	//__map();
-	__scene();
-	__inventory();
-	getch();    
+//Element_T gPokusElement(5, 5, "Pokus Element");
+//Item_T gPokusItem;
+//cout << gPokusElement;
+//cout <<	gPokusItem;
+//(void) getchar();
 
-	__WindowClose();
+	InitScene();
+	//__inventory_init();
+	InitMap();
+
+	//gScene[gActiveScene].Draw();
+	//gInventory.Draw();
+	//gControl.Draw();
+
+	//__control();
+	gMap.Draw(Map_T::ALL);
+
+	while (true)
+	{
+		MouseMove();
+		MouseClickLeft();
+	}
+
+	WindowClose();
     return 0;
 }
 
+void MouseMove(void)
+{
+	if (true == ismouseclick(WM_MOUSEMOVE))
+	{
+		int mouse_x = -1;
+		int mouse_y = -1;
+		getmouseclick(WM_MOUSEMOVE, mouse_x, mouse_y);
+
+		switch (gView)
+		{
+			case MAP:
+			{
+				Node_T::Id_T node_under_cursor = gMap.getNodeUnderCursor(mouse_x, mouse_y);
+				if (gMap.prev_highlighted_node != node_under_cursor)
+				{
+					/* Light off previously highlighted node. */
+					if (Node_T::NONE != gMap.prev_highlighted_node)
+					{
+						gMap.node[gMap.prev_highlighted_node].LightOff();
+						gMap.node[gMap.prev_highlighted_node].DrawNode();
+						gMap.prev_highlighted_node = Node_T::NONE;
+					}
+
+					/* Light on newly highlighted node. */
+					if ((Node_T::NONE != node_under_cursor) &&
+						gMap.node[node_under_cursor].isVisible() &&
+						gMap.node[node_under_cursor].isEnabled())
+					{
+						gMap.node[node_under_cursor].LightOn();
+						gMap.node[node_under_cursor].DrawNode();
+						gMap.prev_highlighted_node = node_under_cursor;
+					}
+				}
+				break;
+			}
+
+			
+			case SCENE:
+			{
+				int button_under_cursor = gControl.getButtonUnderCursor(mouse_x, mouse_y);
+
+				if (gControl.prev_highlighted_button != button_under_cursor)
+				{
+					/* Light off previously highlighted button. */
+					if (-1 != gControl.prev_highlighted_button)
+					{
+						gControl.button[gControl.prev_highlighted_button].LightOff();
+						gControl.button[gControl.prev_highlighted_button].Draw();
+						gControl.prev_highlighted_button = Node_T::NONE;
+					}
+
+					/* Light on newly highlighted button. */
+					if ((-1 != button_under_cursor) /*&&
+						gControl.button[button_under_cursor].isVisible() &&
+						gControl.button[button_under_cursor].isEnabled()*/)
+					{
+						gControl.button[button_under_cursor].LightOn();
+						gControl.button[button_under_cursor].Draw();
+						gControl.prev_highlighted_button = button_under_cursor;
+					}
+				}
+				break;
+			}
+
+			case MENU:
+			{
+				int button_under_cursor = gMenuMain.getButtonUnderCursor(mouse_x, mouse_y);
+				cout << button_under_cursor << endl;
+				if (gMenuMain.prev_highlighted_button != button_under_cursor)
+				{
+					/* Light off previously highlighted button. */
+					if (-1 != gMenuMain.prev_highlighted_button)
+					{
+						gMenuMain.button[gMenuMain.prev_highlighted_button].LightOff();
+						gMenuMain.button[gMenuMain.prev_highlighted_button].Draw();
+						gMenuMain.prev_highlighted_button = Node_T::NONE;
+					}
+
+					/* Light on newly highlighted button. */
+					if ((-1 != button_under_cursor) /*&&
+						gMenuMain.button[button_under_cursor].isVisible() &&
+						gMenuMain.button[button_under_cursor].isEnabled()*/)
+					{
+						gMenuMain.button[button_under_cursor].LightOn();
+						gMenuMain.button[button_under_cursor].Draw();
+						gMenuMain.prev_highlighted_button = button_under_cursor;
+					}
+				}
+				break;
+			}
+		}
+
+#ifdef DEBUG
+		setbkcolor(BLACK);
+		setcolor(WHITE);
+		settextstyle(DEFAULT_FONT, 0, 0);
+		settextjustify(LEFT_TEXT, TOP_TEXT);
+		outtextxy(0,  0, "     ");
+		outtextxy(0, 16, "     ");
+		outtextxy(0, 32, "     ");
+		const char *view = (MAP == gView) ? "MAP" : (SCENE == gView) ? "SCENE" : "MENU";
+		bgiout << "X=" << mouse_x << endl << "Y=" << mouse_y << endl << view;
+		outstreamxy(0, 0);
+#endif
+	}
+}
+
+void MouseClickLeft(void)
+{
+	if (true == ismouseclick(WM_LBUTTONDOWN))
+	{
+		Button_T::Id_T button_under_cursor = Button_T::NONE;
+		int mouse_x = -1;
+		int mouse_y = -1;
+		getmouseclick(WM_LBUTTONDOWN, mouse_x, mouse_y);
+
+		switch (gView)
+		{
+			case MAP:
+			{
+				Node_T::Id_T node_under_cursor = gMap.getNodeUnderCursor(mouse_x, mouse_y);
+
+				if ((Node_T::NONE != node_under_cursor) &&
+					gMap.node[node_under_cursor].isVisible() &&
+					gMap.node[node_under_cursor].isEnabled())
+				{
+					gMap.node[gMap.selected_node].Unselect();
+					gMap.node[gMap.selected_node].DrawNode();
+					gMap.node[node_under_cursor].Select();
+					gMap.node[node_under_cursor].DrawNode();
+					gMap.selected_node = node_under_cursor;
+
+					SceneID_T id = gMap.node[node_under_cursor].go_to_scene;
+					gScene[id].Draw();
+					gInventory.Draw();
+					gControl.Draw();
+
+					gView = SCENE;
+					gActiveScene = id;
+				}
+				break;
+			}
+
+			case SCENE:
+			{
+				int item_under_cursor = gScene[gActiveScene].getItemUnderCursor(mouse_x, mouse_y);
+				button_under_cursor = gControl.getButtonUnderCursor(mouse_x, mouse_y);
+
+				if (Item_T::NONE != item_under_cursor)
+				{
+					switch (gScene[gActiveScene].item[item_under_cursor]->type)
+					{
+					case Item_T::COLLECTIBLE:
+					{
+						Item_T* item = gScene[gActiveScene].RemoveItem(gScene[gActiveScene].item[item_under_cursor]->id);
+						gInventory.Add(*item);
+						gScene[gActiveScene].Draw();
+						gInventory.Draw();
+						gControl.Draw();
+						break;
+					}
+
+					case Item_T::LINK:
+						SceneID_T next_scene = gScene[gActiveScene].item[item_under_cursor]->go_to_scene;
+
+						if (SCENE_NONE == next_scene)
+						{
+							cout << "WARNING: A link to next scene not defined." << endl;
+						}
+						else if (SCENE_GO_TO_MAP == next_scene)
+						{
+							gMap.Draw(Map_T::ALL);
+							gView = MAP;
+						}
+						else
+						{
+							gActiveScene = next_scene;
+							gScene[gActiveScene].Draw();
+							gInventory.Draw();
+							gControl.Draw();
+						}
+						break;
+					}
+				}
+
+				if (Button_T::NONE != button_under_cursor)
+				{
+					switch (gControl.button[button_under_cursor].id)
+					{
+						case Button_T::Id_T::ARROW_LEFT:
+							gInventory.ShiftView(Inventory_T::Direction_T::SCROLL_LEFT);  // TODO: Add a function pointer to the button class and call shiftview() via this pointer.
+							gInventory.Draw();
+							gControl.Draw();
+							break;
+
+						case Button_T::Id_T::ARROW_RIGHT:
+							gInventory.ShiftView(Inventory_T::Direction_T::SCROLL_RIGHT);
+							gInventory.Draw();
+							gControl.Draw();
+							break;
+
+						case Button_T::Id_T::MAP:
+							gMap.Draw(Map_T::ALL);
+							gView = MAP;
+							break;
+
+						case Button_T::Id_T::MENU:
+							gButtons_MenuMain[0].header = true;
+							gMenuMain.Draw();
+
+							//gButtons_MenuCredit[0].header = true;
+							//gMenuCredit.Draw();
+
+							gView = MENU;
+							break;
+					}
+				}
+				break;
+			}
+
+			case MENU:
+			{
+				//int button_under_cursor = gMenuMain.getButtonUnderCursor(mouse_x, mouse_y);
+				//if (BTN_NONE != button_under_cursor)
+				//{
+				//	switch (gMenuMain.button[button_under_cursor].id)
+				//	{
+				//		case ID_BTN_CANCEL:
+							gScene[gActiveScene].Draw();
+							gInventory.Draw();
+							gControl.Draw();
+							gView = SCENE;
+				//			break;
+				//	}
+				//}
+				break;
+			}
+		}
+	}
+}
